@@ -35,6 +35,7 @@ interface ChartWrapperProps {
   onReset?: () => void;
   className?: string;
   height?: string;
+  extraContent?: React.ReactNode;
 }
 
 export default function ChartWrapper({
@@ -44,6 +45,7 @@ export default function ChartWrapper({
   onReset,
   className = '',
   height = 'h-80',
+  extraContent,
 }: ChartWrapperProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -65,10 +67,15 @@ export default function ChartWrapper({
       ${className}
     `}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-        <div>
+        <div className="flex-1">
           <h3 className="text-base font-semibold text-slate-800">{title}</h3>
           {subtitle && (
             <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
+          )}
+          {extraContent && (
+            <div className="mt-2">
+              {extraContent}
+            </div>
           )}
         </div>
         

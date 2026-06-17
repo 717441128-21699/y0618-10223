@@ -18,6 +18,7 @@ interface DataState {
   removeCompareGroup: (id: string) => void;
   setActiveCompareGroup: (id: string | null) => void;
   updateCompareGroup: (id: string, updates: Partial<CompareGroup>) => void;
+  updateFileMetadata: (id: string, metadata: Record<string, any>) => void;
 }
 
 export const useDataStore = create<DataState>((set, get) => ({
@@ -73,6 +74,12 @@ export const useDataStore = create<DataState>((set, get) => ({
   updateCompareGroup: (id, updates) => set((state) => ({
     compareGroups: state.compareGroups.map((g) =>
       g.id === id ? { ...g, ...updates } : g
+    ),
+  })),
+
+  updateFileMetadata: (id, metadata) => set((state) => ({
+    files: state.files.map((f) =>
+      f.id === id ? { ...f, metadata: { ...f.metadata, ...metadata } } : f
     ),
   })),
 }));

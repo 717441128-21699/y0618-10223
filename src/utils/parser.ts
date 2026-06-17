@@ -119,53 +119,88 @@ export function parseDischargeData(rows: Record<string, number>[]): DischargeDat
   const tKey = keys.find(k => k.toLowerCase().includes('time') || k.toLowerCase().includes('t/') || k.toLowerCase() === 't');
   const vKey = keys.find(k => k.toLowerCase().includes('voltage') || k.toLowerCase().includes('v/') || k.toLowerCase() === 'v');
   const iKey = keys.find(k => k.toLowerCase().includes('current') || k.toLowerCase().includes('i/') || k.toLowerCase() === 'i');
-  const cycleKey = keys.find(k => k.toLowerCase().includes('cycle') || k.toLowerCase().includes('循环'));
-  const typeKey = keys.find(k => k.toLowerCase().includes('type') || k.toLowerCase().includes('类型') || k.toLowerCase().includes('step'));
+  const cycleKey = keys.find(k => k.toLowerCase().includes('cycle') || k.toLowerCase().includes('循环') || k.toLowerCase().includes('圈数'));
+  const typeKey = keys.find(k => 
+    k.toLowerCase().includes('type') || 
+    k.toLowerCase().includes('类型') || 
+    k.toLowerCase().includes('step') ||
+    k.toLowerCase().includes('步骤') ||
+    k.toLowerCase().includes('status') ||
+    k.toLowerCase().includes('状态')
+  );
   
   if (!tKey || !vKey || !iKey) return result;
   
+  const chargeKeywords = ['charge', '充电', 'c', 'chg', 'charge step', 'chg.'];
+  const dischargeKeywords = ['discharge', '放电', 'd', 'dchg', 'dis', 'discharge step', 'dchg.', 'dischg'];
+  const restKeywords = ['rest', '静置', 'relax', 'r', 'stand', 'pause', 'hold', '搁置', 'ocv', '开路', 'open circuit'];
+  
+  const matchType = (val: string): 'charge' | 'discharge' | 'rest' | null => {
+    const tStr = val.toLowerCase().trim();
+    if (!tStr) return null;
+    
+    if (chargeKeywords.some(kw => tStr === kw || tStr.startsWith(kw + ' ') || tStr.endsWith(' ' + kw))) {
+      return 'charge';
+    }
+    if (dischargeKeywords.some(kw => tStr === kw || tStr.startsWith(kw + ' ') || tStr.endsWith(' ' + kw))) {
+      return 'discharge';
+    }
+    if (restKeywords.some(kw => tStr === kw || tStr.startsWith(kw + ' ') || tStr.endsWith(' ' + kw))) {
+      return 'rest';
+    }
+    return null;
+  };
+  
   let prevV = 0;
+  let prevT = 0;
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const V = row[vKey] ?? 0;
     const I = row[iKey] ?? 0;
+    const t = row[tKey] ?? 0;
     
     let type: 'charge' | 'discharge' | 'rest' = 'discharge';
+    let typeFromLabel = false;
     
     if (typeKey) {
       const tVal = row[typeKey];
-      const tStr = (typeof tVal === 'string' ? tVal : String(tVal)).toLowerCase().trim();
-      
-      if (tStr === 'charge' || tStr === '充电' || tStr === 'c' || tStr === 'chg') {
-        type = 'charge';
-      } else if (tStr === 'discharge' || tStr === '放电' || tStr === 'd' || tStr === 'dchg' || tStr === 'dis') {
-        type = 'discharge';
-      } else if (tStr === 'rest' || tStr === '静置' || tStr === 'relax' || tStr === 'r' || tStr === 'stand') {
-        type = 'rest';
-      } else {
-        type = 'discharge';
+      const tStr = typeof tVal === 'string' ? tVal : String(tVal);
+      const matched = matchType(tStr);
+      if (matched) {
+        type = matched;
+        typeFromLabel = true;
       }
-    } else {
+    }
+    
+    if (!typeFromLabel) {
       if (i > 0) {
         const dV = V - prevV;
+        const dt = t - prevT;
+        
         if (Math.abs(I) > 1e-9) {
-          if (I > 0 || (I === 0 && dV > 0.001)) {
+          if (I > 0) {
             type = 'charge';
-          } else if (I < 0 || (I === 0 && dV < -0.001)) {
+          } else if (I < 0) {
             type = 'discharge';
           } else {
             type = 'rest';
           }
         } else {
-          if (dV > 0.001) type = 'charge';
-          else if (dV < -0.001) type = 'discharge';
-          else type = 'rest';
+          if (dt > 0 && Math.abs(dV / dt) < 0.0001) {
+            type = 'rest';
+          } else if (dV > 0.001) {
+            type = 'charge';
+          } else if (dV < -0.001) {
+            type = 'discharge';
+          } else {
+            type = 'rest';
+          }
         }
       }
     }
     
     result.push({
-      t: row[tKey] ?? 0,
+      t,
       V,
       I,
       cycle: cycleKey ? (row[cycleKey] ?? 1) : 1,
@@ -173,6 +208,7 @@ export function parseDischargeData(rows: Record<string, number>[]): DischargeDat
     });
     
     prevV = V;
+    prevT = t;
   }
   
   return result;
