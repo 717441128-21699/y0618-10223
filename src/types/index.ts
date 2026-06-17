@@ -52,7 +52,7 @@ export interface DischargeDataPoint {
   V: number;
   I: number;
   cycle: number;
-  type: 'charge' | 'discharge';
+  type: 'charge' | 'discharge' | 'rest';
 }
 
 export interface DischargeResult {

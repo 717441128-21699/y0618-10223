@@ -20,6 +20,7 @@ export default function DischargeAnalysis() {
   const [mass, setMass] = useState(1);
   const [selectedCycles, setSelectedCycles] = useState<number[]>([]);
   const [showCharge, setShowCharge] = useState(true);
+  const [showRest, setShowRest] = useState(false);
   
   const selectedFile = useMemo(
     () => files.find((f) => f.id === selectedFileId) || files[0],
@@ -90,10 +91,28 @@ export default function DischargeAnalysis() {
         pointRadius: 0,
         tension: 0.1,
       });
+      
+      if (showRest) {
+        const restData = analysisResult.data.filter(
+          (d) => d.cycle === cycleNum && d.type === 'rest'
+        );
+        if (restData.length > 0) {
+          datasets.push({
+            label: `静置 循环${cycleNum}`,
+            data: restData.map((d) => ({ x: d.t, y: d.V })),
+            borderColor: '#94a3b8',
+            borderDash: [2, 2],
+            backgroundColor: 'transparent',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0.1,
+          });
+        }
+      }
     });
     
     return { datasets };
-  }, [analysisResult, selectedCycles, showCharge]);
+  }, [analysisResult, selectedCycles, showCharge, showRest]);
   
   const capacityChartData = useMemo(() => {
     if (!analysisResult) return null;
@@ -333,6 +352,17 @@ export default function DischargeAnalysis() {
                       className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
                     />
                     <span>显示充电曲线</span>
+                  </label>
+                </div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="flex items-center space-x-2 text-sm text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={showRest}
+                      onChange={(e) => setShowRest(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                    />
+                    <span>显示静置段</span>
                   </label>
                 </div>
                 <div className="space-y-1 max-h-64 overflow-y-auto">

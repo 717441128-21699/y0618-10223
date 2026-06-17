@@ -7,13 +7,38 @@ export function calculateCapacity(
 ): { chargeCapacity: number; dischargeCapacity: number } {
   const cycleData = data.filter(d => d.cycle === cycle);
   
-  const chargeData = cycleData.filter(d => d.type === 'charge');
-  const dischargeData = cycleData.filter(d => d.type === 'discharge');
+  const chargeSegments = getContinuousSegments(cycleData, 'charge');
+  const dischargeSegments = getContinuousSegments(cycleData, 'discharge');
   
-  const chargeCapacity = integrateCapacity(chargeData) / mass;
-  const dischargeCapacity = integrateCapacity(dischargeData) / mass;
+  const chargeCapacity = chargeSegments.reduce((sum, seg) => sum + integrateCapacity(seg), 0) / mass;
+  const dischargeCapacity = dischargeSegments.reduce((sum, seg) => sum + integrateCapacity(seg), 0) / mass;
   
   return { chargeCapacity, dischargeCapacity };
+}
+
+function getContinuousSegments(
+  data: DischargeDataPoint[],
+  targetType: 'charge' | 'discharge'
+): DischargeDataPoint[][] {
+  const segments: DischargeDataPoint[][] = [];
+  let currentSegment: DischargeDataPoint[] = [];
+  
+  for (const point of data) {
+    if (point.type === targetType) {
+      currentSegment.push(point);
+    } else {
+      if (currentSegment.length >= 2) {
+        segments.push([...currentSegment]);
+      }
+      currentSegment = [];
+    }
+  }
+  
+  if (currentSegment.length >= 2) {
+    segments.push(currentSegment);
+  }
+  
+  return segments;
 }
 
 function integrateCapacity(data: DischargeDataPoint[]): number {
@@ -22,6 +47,7 @@ function integrateCapacity(data: DischargeDataPoint[]): number {
   let capacity = 0;
   for (let i = 1; i < data.length; i++) {
     const dt = data[i].t - data[i - 1].t;
+    if (dt <= 0) continue;
     const avgI = (Math.abs(data[i].I) + Math.abs(data[i - 1].I)) / 2;
     capacity += avgI * dt;
   }
@@ -34,16 +60,20 @@ export function calculateEnergyDensity(
   cycle: number,
   mass: number = 1
 ): number {
-  const cycleData = data.filter(d => d.cycle === cycle && d.type === 'discharge');
+  const cycleData = data.filter(d => d.cycle === cycle);
+  const dischargeSegments = getContinuousSegments(cycleData, 'discharge');
   
-  if (cycleData.length < 2) return 0;
+  if (dischargeSegments.length === 0) return 0;
   
   let energy = 0;
-  for (let i = 1; i < cycleData.length; i++) {
-    const dt = cycleData[i].t - cycleData[i - 1].t;
-    const avgV = (cycleData[i].V + cycleData[i - 1].V) / 2;
-    const avgI = (Math.abs(cycleData[i].I) + Math.abs(cycleData[i - 1].I)) / 2;
-    energy += avgV * avgI * dt;
+  for (const segment of dischargeSegments) {
+    for (let i = 1; i < segment.length; i++) {
+      const dt = segment[i].t - segment[i - 1].t;
+      if (dt <= 0) continue;
+      const avgV = (segment[i].V + segment[i - 1].V) / 2;
+      const avgI = (Math.abs(segment[i].I) + Math.abs(segment[i - 1].I)) / 2;
+      energy += avgV * avgI * dt;
+    }
   }
   
   return energy / 3600 / mass;

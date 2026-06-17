@@ -188,6 +188,123 @@ export default function EISAnalysis() {
     },
   }), []);
   
+  const residualChartData = useMemo(() => {
+    if (!eisData || !fitData || eisData.length !== fitData.length) return null;
+    
+    const realResiduals: { x: number; y: number }[] = [];
+    const imagResiduals: { x: number; y: number }[] = [];
+    
+    for (let i = 0; i < eisData.length; i++) {
+      const freq = eisData[i].freq;
+      realResiduals.push({
+        x: freq,
+        y: eisData[i].Zreal - fitData[i].Zreal,
+      });
+      imagResiduals.push({
+        x: freq,
+        y: eisData[i].Zimag - fitData[i].Zimag,
+      });
+    }
+    
+    return {
+      datasets: [
+        {
+          label: "实部残差 ΔZ'",
+          data: realResiduals,
+          borderColor: chartColors[0].border,
+          backgroundColor: chartColors[0].bg,
+          borderWidth: 2,
+          pointRadius: 4,
+          showLine: true,
+          tension: 0.2,
+        },
+        {
+          label: "虚部残差 ΔZ''",
+          data: imagResiduals,
+          borderColor: chartColors[1].border,
+          backgroundColor: chartColors[1].bg,
+          borderWidth: 2,
+          pointRadius: 4,
+          showLine: true,
+          tension: 0.2,
+        },
+      ],
+    };
+  }, [eisData, fitData]);
+  
+  const residualOptions = useMemo(() => ({
+    ...defaultChartOptions,
+    scales: {
+      x: {
+        type: 'logarithmic' as const,
+        title: {
+          display: true,
+          text: '频率 (Hz)',
+          font: { size: 12, weight: 'bold' as const },
+          color: '#475569',
+        },
+        grid: {
+          color: 'rgba(226, 232, 240, 0.5)',
+        },
+      },
+      y: {
+        type: 'linear' as const,
+        title: {
+          display: true,
+          text: '残差 (Ω)',
+          font: { size: 12, weight: 'bold' as const },
+          color: '#475569',
+        },
+        grid: {
+          color: 'rgba(226, 232, 240, 0.5)',
+        },
+      },
+    },
+    plugins: {
+      ...defaultChartOptions.plugins,
+      legend: {
+        ...defaultChartOptions.plugins?.legend,
+        display: true,
+      },
+    },
+  }), []);
+  
+  const residualTableData = useMemo(() => {
+    if (!eisData || !fitData || eisData.length !== fitData.length) return [];
+    
+    return eisData.map((point, idx) => {
+      const fitPoint = fitData[idx];
+      const realResidual = point.Zreal - fitPoint.Zreal;
+      const imagResidual = point.Zimag - fitPoint.Zimag;
+      
+      return {
+        index: idx + 1,
+        freq: point.freq.toExponential(2),
+        zrealExp: point.Zreal.toFixed(4),
+        zrealFit: fitPoint.Zreal.toFixed(4),
+        realResidual: realResidual.toFixed(4),
+        realResidualPct: point.Zreal !== 0 ? ((realResidual / point.Zreal) * 100).toFixed(2) : '-',
+        zimagExp: point.Zimag.toFixed(4),
+        zimagFit: fitPoint.Zimag.toFixed(4),
+        imagResidual: imagResidual.toFixed(4),
+        imagResidualPct: point.Zimag !== 0 ? ((imagResidual / point.Zimag) * 100).toFixed(2) : '-',
+      };
+    });
+  }, [eisData, fitData]);
+  
+  const residualColumns = [
+    { key: 'index', label: '#', width: '50px', align: 'center' as const },
+    { key: 'freq', label: '频率 (Hz)', align: 'right' as const },
+    { key: 'zrealExp', label: 'Z\'实验 (Ω)', align: 'right' as const },
+    { key: 'zrealFit', label: 'Z\'拟合 (Ω)', align: 'right' as const },
+    { key: 'realResidual', label: 'ΔZ\' (Ω)', align: 'right' as const },
+    { key: 'realResidualPct', label: 'ΔZ\' (%)', align: 'right' as const },
+    { key: 'zimagExp', label: 'Z\'\'实验 (Ω)', align: 'right' as const },
+    { key: 'zimagFit', label: 'Z\'\'拟合 (Ω)', align: 'right' as const },
+    { key: 'imagResidual', label: 'ΔZ\'\' (Ω)', align: 'right' as const },
+    { key: 'imagResidualPct', label: 'ΔZ\'\' (%)', align: 'right' as const },
+  ];
+  
   const bodeOptions = useMemo(() => ({
     ...defaultChartOptions,
     scales: {
@@ -440,6 +557,26 @@ export default function EISAnalysis() {
                   data={paramsTableData}
                   title="等效电路拟合参数"
                 />
+                
+                {residualChartData && (
+                  <ChartWrapper
+                    title="拟合残差曲线"
+                    subtitle="实部与虚部残差 vs 频率"
+                    height="h-64"
+                  >
+                    <Line data={residualChartData} options={residualOptions} />
+                  </ChartWrapper>
+                )}
+                
+                {residualTableData.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <DataTable
+                      columns={residualColumns}
+                      data={residualTableData}
+                      title="各频率点残差详情"
+                    />
+                  </div>
+                )}
               </>
             ) : (
               <div className="bg-white rounded-xl border border-slate-200 p-16 text-center">

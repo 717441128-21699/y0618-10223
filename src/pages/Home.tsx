@@ -48,38 +48,106 @@ export default function Home() {
     
     if (type === 'cv') {
       Object.entries(sampleCVData).forEach(([name, data]) => {
+        const metadata: any = { label: name };
+        
+        if (name.includes('25C')) {
+          metadata.temperature = 25;
+          metadata.label = '25°C';
+        } else if (name.includes('45C')) {
+          metadata.temperature = 45;
+          metadata.label = '45°C';
+        } else if (name.includes('low_conc')) {
+          metadata.concentration = 0.1;
+          metadata.label = '低浓度 (0.1M)';
+        } else if (name.includes('high_conc')) {
+          metadata.concentration = 1.0;
+          metadata.label = '高浓度 (1.0M)';
+        } else if (name.includes('50mV')) {
+          metadata.scanRate = 0.05;
+          metadata.label = '50 mV/s';
+        } else if (name.includes('100mV')) {
+          metadata.scanRate = 0.1;
+          metadata.label = '100 mV/s';
+        } else if (name === 'CV_sample') {
+          metadata.scanRate = 0.05;
+          metadata.label = '标准样品';
+        }
+        
         sampleFiles.push({
           id: `sample-cv-${name}`,
           name: `${name}.csv`,
           type: 'cv',
           rawContent: cvDataToCSV(data),
-          metadata: {
-            label: name,
-          },
+          metadata,
         });
       });
     } else if (type === 'eis') {
       Object.entries(sampleEISData).forEach(([name, data]) => {
+        const metadata: any = { label: name };
+        
+        if (name.includes('25C')) {
+          metadata.temperature = 25;
+          metadata.label = '25°C';
+        } else if (name.includes('45C')) {
+          metadata.temperature = 45;
+          metadata.label = '45°C';
+        } else if (name.includes('low_conc')) {
+          metadata.concentration = 0.1;
+          metadata.label = '低浓度 (0.1M)';
+        } else if (name.includes('high_conc')) {
+          metadata.concentration = 1.0;
+          metadata.label = '高浓度 (1.0M)';
+        } else if (name === 'EIS_simple') {
+          metadata.label = '简单RC电路';
+        } else if (name === 'EIS_CPE') {
+          metadata.label = 'CPE模型';
+        } else if (name === 'EIS_Warburg') {
+          metadata.label = 'Warburg扩散';
+        } else if (name === 'EIS_full') {
+          metadata.label = '完整模型';
+        }
+        
         sampleFiles.push({
           id: `sample-eis-${name}`,
           name: `${name}.csv`,
           type: 'eis',
           rawContent: eisDataToCSV(data),
-          metadata: {
-            label: name,
-          },
+          metadata,
         });
       });
     } else if (type === 'discharge') {
       Object.entries(sampleDischargeData).forEach(([name, data]) => {
+        const metadata: any = { label: name };
+        
+        if (name.includes('25C')) {
+          metadata.temperature = 25;
+          metadata.label = '25°C';
+        } else if (name.includes('45C')) {
+          metadata.temperature = 45;
+          metadata.label = '45°C';
+        } else if (name.includes('low_conc')) {
+          metadata.concentration = 0.1;
+          metadata.label = '低浓度 (0.1M)';
+        } else if (name.includes('high_conc')) {
+          metadata.concentration = 1.0;
+          metadata.label = '高浓度 (1.0M)';
+        } else if (name.includes('fast')) {
+          metadata.currentDensity = 2;
+          metadata.label = '2C 倍率';
+        } else if (name.includes('slow')) {
+          metadata.currentDensity = 0.5;
+          metadata.label = '0.5C 倍率';
+        } else if (name === 'Discharge_sample') {
+          metadata.currentDensity = 1;
+          metadata.label = '1C 倍率';
+        }
+        
         sampleFiles.push({
           id: `sample-discharge-${name}`,
           name: `${name}.csv`,
           type: 'discharge',
           rawContent: dischargeDataToCSV(data),
-          metadata: {
-            label: name,
-          },
+          metadata,
         });
       });
     }

@@ -120,7 +120,7 @@ export function parseDischargeData(rows: Record<string, number>[]): DischargeDat
   const vKey = keys.find(k => k.toLowerCase().includes('voltage') || k.toLowerCase().includes('v/') || k.toLowerCase() === 'v');
   const iKey = keys.find(k => k.toLowerCase().includes('current') || k.toLowerCase().includes('i/') || k.toLowerCase() === 'i');
   const cycleKey = keys.find(k => k.toLowerCase().includes('cycle') || k.toLowerCase().includes('循环'));
-  const typeKey = keys.find(k => k.toLowerCase().includes('type') || k.toLowerCase().includes('类型'));
+  const typeKey = keys.find(k => k.toLowerCase().includes('type') || k.toLowerCase().includes('类型') || k.toLowerCase().includes('step'));
   
   if (!tKey || !vKey || !iKey) return result;
   
@@ -130,13 +130,38 @@ export function parseDischargeData(rows: Record<string, number>[]): DischargeDat
     const V = row[vKey] ?? 0;
     const I = row[iKey] ?? 0;
     
-    let type: 'charge' | 'discharge' = 'discharge';
+    let type: 'charge' | 'discharge' | 'rest' = 'discharge';
+    
     if (typeKey) {
-      const t = (row[typeKey] as unknown as string)?.toString().toLowerCase();
-      type = t === 'charge' || t === '充电' ? 'charge' : 'discharge';
-    } else if (i > 0) {
-      if (V > prevV) type = 'charge';
-      else if (V < prevV) type = 'discharge';
+      const tVal = row[typeKey];
+      const tStr = (typeof tVal === 'string' ? tVal : String(tVal)).toLowerCase().trim();
+      
+      if (tStr === 'charge' || tStr === '充电' || tStr === 'c' || tStr === 'chg') {
+        type = 'charge';
+      } else if (tStr === 'discharge' || tStr === '放电' || tStr === 'd' || tStr === 'dchg' || tStr === 'dis') {
+        type = 'discharge';
+      } else if (tStr === 'rest' || tStr === '静置' || tStr === 'relax' || tStr === 'r' || tStr === 'stand') {
+        type = 'rest';
+      } else {
+        type = 'discharge';
+      }
+    } else {
+      if (i > 0) {
+        const dV = V - prevV;
+        if (Math.abs(I) > 1e-9) {
+          if (I > 0 || (I === 0 && dV > 0.001)) {
+            type = 'charge';
+          } else if (I < 0 || (I === 0 && dV < -0.001)) {
+            type = 'discharge';
+          } else {
+            type = 'rest';
+          }
+        } else {
+          if (dV > 0.001) type = 'charge';
+          else if (dV < -0.001) type = 'discharge';
+          else type = 'rest';
+        }
+      }
     }
     
     result.push({

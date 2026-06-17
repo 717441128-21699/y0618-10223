@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Line } from 'react-chartjs-2';
+import { Line, Scatter } from 'react-chartjs-2';
 import { Activity, Upload, Trash2, Eye, EyeOff } from 'lucide-react';
 import ChartWrapper, { chartColors, defaultChartOptions } from '@/components/ChartWrapper';
 import FileUpload, { FileList } from '@/components/FileUpload';
@@ -61,19 +61,19 @@ export default function CVAnalysis() {
     
     selectedCycles.forEach((cycle, idx) => {
       const cycleData = getDataByCycle(analysisResult.data, cycle);
-      const sortedData = [...cycleData].sort((a, b) => a.E - b.E);
       
       const color = chartColors[idx % chartColors.length];
       
       datasets.push({
         label: `循环 ${cycle}`,
-        data: sortedData.map((d) => ({ x: d.E, y: d.I })),
+        data: cycleData.map((d) => ({ x: d.E, y: d.I })),
         borderColor: color.border,
         backgroundColor: 'transparent',
         borderWidth: 2,
         pointRadius: 0,
         pointHoverRadius: 4,
         tension: 0.1,
+        showLine: true,
       });
       
       if (showPeaks) {
@@ -262,7 +262,7 @@ export default function CVAnalysis() {
                   subtitle={selectedFile?.name || ''}
                   height="h-96"
                 >
-                  {chartData && <Line data={chartData} options={chartOptions} />}
+                  {chartData && <Scatter data={chartData} options={chartOptions} />}
                 </ChartWrapper>
                 
                 <DataTable

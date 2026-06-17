@@ -58,6 +58,7 @@ export default function CompareAnalysis() {
           return {
             fileId,
             label,
+            metadata: file.metadata,
             data: result,
             params: {
               anodicIp: anodicPeak ? anodicPeak.Ip : 0,
@@ -75,6 +76,7 @@ export default function CompareAnalysis() {
           return {
             fileId,
             label,
+            metadata: file.metadata,
             data: { eisData: data, fit },
             params: {
               Rs: fit.Rs,
@@ -95,6 +97,7 @@ export default function CompareAnalysis() {
           return {
             fileId,
             label,
+            metadata: file.metadata,
             data: result,
             params: {
               initialCapacity: firstCycle?.capacity || 0,
@@ -190,10 +193,32 @@ export default function CompareAnalysis() {
     };
   }, [activeGroup, analysisResults, dataType]);
   
+  const getConditionLabel = (metadata: any): string => {
+    if (!metadata) return '';
+    const parts: string[] = [];
+    if (metadata.temperature !== undefined) {
+      parts.push(`${metadata.temperature}°C`);
+    }
+    if (metadata.concentration !== undefined) {
+      parts.push(`${metadata.concentration}M`);
+    }
+    if (metadata.scanRate !== undefined) {
+      parts.push(`${metadata.scanRate * 1000}mV/s`);
+    }
+    if (metadata.currentDensity !== undefined) {
+      parts.push(`${metadata.currentDensity}C`);
+    }
+    return parts.join(' · ');
+  };
+  
   const paramBarData = useMemo(() => {
     if (!activeGroup) return null;
     
-    const labels = analysisResults.map((r: any) => r?.label || '');
+    const labels = analysisResults.map((r: any) => {
+      if (!r) return '';
+      const condition = getConditionLabel(r.metadata);
+      return condition || r.label;
+    });
     
     if (dataType === 'cv') {
       return {
@@ -258,9 +283,16 @@ export default function CompareAnalysis() {
     return analysisResults.map((result: any) => {
       if (!result) return null;
       
+      const condition = getConditionLabel(result.metadata);
+      const temp = result.metadata?.temperature !== undefined ? `${result.metadata.temperature}°C` : '-';
+      const conc = result.metadata?.concentration !== undefined ? `${result.metadata.concentration}M` : '-';
+      
       if (dataType === 'cv') {
         return {
           name: result.label,
+          condition,
+          temperature: temp,
+          concentration: conc,
           param1: (result.params.anodicIp * 1e6).toFixed(2) + ' μA',
           param2: (result.params.cathodicIp * 1e6).toFixed(2) + ' μA',
           param3: (result.params.deltaEp * 1000).toFixed(1) + ' mV',
@@ -270,6 +302,9 @@ export default function CompareAnalysis() {
       if (dataType === 'eis') {
         return {
           name: result.label,
+          condition,
+          temperature: temp,
+          concentration: conc,
           param1: result.params.Rs.toFixed(2) + ' Ω',
           param2: result.params.Rct.toFixed(2) + ' Ω',
           param3: (result.params.Cdl * 1e6).toFixed(2) + ' μF',
@@ -279,6 +314,9 @@ export default function CompareAnalysis() {
       if (dataType === 'discharge') {
         return {
           name: result.label,
+          condition,
+          temperature: temp,
+          concentration: conc,
           param1: result.params.initialCapacity.toFixed(1) + ' mAh/g',
           param2: result.params.capacityRetention.toFixed(1) + ' %',
           param3: result.params.avgEfficiency.toFixed(1) + ' %',
@@ -290,6 +328,9 @@ export default function CompareAnalysis() {
   }, [activeGroup, analysisResults, dataType]);
   
   const tableColumns = [
+    { key: 'condition', label: '条件', width: '140px' },
+    { key: 'temperature', label: '温度', width: '90px', align: 'center' as const },
+    { key: 'concentration', label: '浓度', width: '90px', align: 'center' as const },
     { key: 'name', label: '样品名称' },
     { key: 'param1', label: dataType === 'cv' ? '氧化峰电流' : dataType === 'eis' ? '溶液电阻 Rs' : '初始容量', align: 'right' as const },
     { key: 'param2', label: dataType === 'cv' ? '还原峰电流' : dataType === 'eis' ? '电荷转移电阻 Rct' : '容量保持率', align: 'right' as const },
