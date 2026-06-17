@@ -52,22 +52,31 @@ export default function Home() {
         
         if (name.includes('25C')) {
           metadata.temperature = 25;
-          metadata.label = '25°C';
-        } else if (name.includes('45C')) {
+        }
+        if (name.includes('45C')) {
           metadata.temperature = 45;
-          metadata.label = '45°C';
-        } else if (name.includes('low_conc')) {
+        }
+        if (name.includes('low') || name.includes('low_conc')) {
           metadata.concentration = 0.1;
-          metadata.label = '低浓度 (0.1M)';
-        } else if (name.includes('high_conc')) {
+        }
+        if (name.includes('high') || name.includes('high_conc')) {
           metadata.concentration = 1.0;
-          metadata.label = '高浓度 (1.0M)';
-        } else if (name.includes('50mV')) {
+        }
+        if (name.includes('50mV')) {
           metadata.scanRate = 0.05;
-          metadata.label = '50 mV/s';
-        } else if (name.includes('100mV')) {
+        }
+        if (name.includes('100mV')) {
           metadata.scanRate = 0.1;
-          metadata.label = '100 mV/s';
+        }
+        
+        const labelParts: string[] = [];
+        if (metadata.temperature !== undefined) labelParts.push(`${metadata.temperature}°C`);
+        if (metadata.concentration !== undefined) {
+          labelParts.push(metadata.concentration <= 0.1 ? '低浓度' : '高浓度');
+        }
+        if (metadata.scanRate !== undefined) labelParts.push(`${metadata.scanRate * 1000}mV/s`);
+        if (labelParts.length > 0) {
+          metadata.label = labelParts.join(' · ');
         } else if (name === 'CV_sample') {
           metadata.scanRate = 0.05;
           metadata.label = '标准样品';
@@ -87,16 +96,24 @@ export default function Home() {
         
         if (name.includes('25C')) {
           metadata.temperature = 25;
-          metadata.label = '25°C';
-        } else if (name.includes('45C')) {
+        }
+        if (name.includes('45C')) {
           metadata.temperature = 45;
-          metadata.label = '45°C';
-        } else if (name.includes('low_conc')) {
+        }
+        if (name.includes('low') || name.includes('low_conc')) {
           metadata.concentration = 0.1;
-          metadata.label = '低浓度 (0.1M)';
-        } else if (name.includes('high_conc')) {
+        }
+        if (name.includes('high') || name.includes('high_conc')) {
           metadata.concentration = 1.0;
-          metadata.label = '高浓度 (1.0M)';
+        }
+        
+        const labelParts: string[] = [];
+        if (metadata.temperature !== undefined) labelParts.push(`${metadata.temperature}°C`);
+        if (metadata.concentration !== undefined) {
+          labelParts.push(metadata.concentration <= 0.1 ? '低浓度' : '高浓度');
+        }
+        if (labelParts.length > 0) {
+          metadata.label = labelParts.join(' · ');
         } else if (name === 'EIS_simple') {
           metadata.label = '简单RC电路';
         } else if (name === 'EIS_CPE') {
@@ -121,25 +138,36 @@ export default function Home() {
         
         if (name.includes('25C')) {
           metadata.temperature = 25;
-          metadata.label = '25°C';
-        } else if (name.includes('45C')) {
+        }
+        if (name.includes('45C')) {
           metadata.temperature = 45;
-          metadata.label = '45°C';
-        } else if (name.includes('low_conc')) {
+        }
+        if (name.includes('low') || name.includes('low_conc')) {
           metadata.concentration = 0.1;
-          metadata.label = '低浓度 (0.1M)';
-        } else if (name.includes('high_conc')) {
+        }
+        if (name.includes('high') || name.includes('high_conc')) {
           metadata.concentration = 1.0;
-          metadata.label = '高浓度 (1.0M)';
-        } else if (name.includes('fast')) {
+        }
+        if (name.includes('fast')) {
           metadata.currentDensity = 2;
-          metadata.label = '2C 倍率';
-        } else if (name.includes('slow')) {
+        }
+        if (name.includes('slow')) {
           metadata.currentDensity = 0.5;
-          metadata.label = '0.5C 倍率';
-        } else if (name === 'Discharge_sample') {
+        }
+        if (name === 'Discharge_sample') {
           metadata.currentDensity = 1;
-          metadata.label = '1C 倍率';
+        }
+        
+        const labelParts: string[] = [];
+        if (metadata.temperature !== undefined) labelParts.push(`${metadata.temperature}°C`);
+        if (metadata.concentration !== undefined) {
+          labelParts.push(metadata.concentration <= 0.1 ? '低浓度' : '高浓度');
+        }
+        if (metadata.currentDensity !== undefined) labelParts.push(`${metadata.currentDensity}C 倍率`);
+        if (labelParts.length > 0) {
+          metadata.label = labelParts.join(' · ');
+        } else if (name === 'Discharge_plateau') {
+          metadata.label = '含平台和静置';
         }
         
         sampleFiles.push({

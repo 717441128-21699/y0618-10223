@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Line, Bar } from 'react-chartjs-2';
+import { Line, Bar, Scatter } from 'react-chartjs-2';
 import { GitCompare, Plus, Trash2, Settings } from 'lucide-react';
 import ChartWrapper, { chartColors, defaultChartOptions } from '@/components/ChartWrapper';
 import { FileList } from '@/components/FileUpload';
@@ -150,16 +150,16 @@ export default function CompareAnalysis() {
       if (!result) return;
       const color = chartColors[idx % chartColors.length];
       const firstCycleData = result.data.data.filter((d: any) => d.cycle === 1);
-      const sorted = [...firstCycleData].sort((a: any, b: any) => a.E - b.E);
       
       datasets.push({
         label: result.label,
-        data: sorted.map((d: any) => ({ x: d.E, y: d.I })),
+        data: firstCycleData.map((d: any) => ({ x: d.E, y: d.I })),
         borderColor: color.border,
         backgroundColor: 'transparent',
         borderWidth: 2,
         pointRadius: 0,
         tension: 0.1,
+        showLine: true,
       });
     });
     
@@ -193,14 +193,48 @@ export default function CompareAnalysis() {
     };
   }, [activeGroup, analysisResults, dataType]);
   
+  const getConcentrationLabel = (concentration: number): string => {
+    if (concentration <= 0.1) return '低浓度';
+    if (concentration >= 1.0) return '高浓度';
+    if (concentration >= 0.5) return '中高浓度';
+    if (concentration >= 0.2) return '中浓度';
+    return '中低浓度';
+  };
+  
   const getConditionLabel = (metadata: any): string => {
+    if (!metadata) return '';
+    
+    if (metadata.temperature !== undefined && metadata.concentration !== undefined) {
+      return `${metadata.temperature}°C\n${getConcentrationLabel(metadata.concentration)}`;
+    }
+    
+    if (metadata.temperature !== undefined) {
+      return `${metadata.temperature}°C`;
+    }
+    
+    if (metadata.concentration !== undefined) {
+      return getConcentrationLabel(metadata.concentration);
+    }
+    
+    if (metadata.scanRate !== undefined) {
+      return `${metadata.scanRate * 1000}mV/s`;
+    }
+    
+    if (metadata.currentDensity !== undefined) {
+      return `${metadata.currentDensity}C`;
+    }
+    
+    return '';
+  };
+  
+  const getTableConditionLabel = (metadata: any): string => {
     if (!metadata) return '';
     const parts: string[] = [];
     if (metadata.temperature !== undefined) {
       parts.push(`${metadata.temperature}°C`);
     }
     if (metadata.concentration !== undefined) {
-      parts.push(`${metadata.concentration}M`);
+      parts.push(getConcentrationLabel(metadata.concentration));
     }
     if (metadata.scanRate !== undefined) {
       parts.push(`${metadata.scanRate * 1000}mV/s`);
@@ -283,9 +317,11 @@ export default function CompareAnalysis() {
     return analysisResults.map((result: any) => {
       if (!result) return null;
       
-      const condition = getConditionLabel(result.metadata);
+      const condition = getTableConditionLabel(result.metadata);
       const temp = result.metadata?.temperature !== undefined ? `${result.metadata.temperature}°C` : '-';
-      const conc = result.metadata?.concentration !== undefined ? `${result.metadata.concentration}M` : '-';
+      const conc = result.metadata?.concentration !== undefined 
+        ? getConcentrationLabel(result.metadata.concentration) 
+        : '-';
       
       if (dataType === 'cv') {
         return {
@@ -506,7 +542,7 @@ export default function CompareAnalysis() {
                   <>
                     {dataType === 'cv' && cvChartData && (
                       <ChartWrapper title="CV曲线对比" height="h-80">
-                        <Line data={cvChartData} options={{
+                        <Scatter data={cvChartData} options={{
                           ...defaultChartOptions,
                           scales: {
                             x: { ...defaultChartOptions.scales?.x, title: { display: true, text: '电位 E (V)' } },

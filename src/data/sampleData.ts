@@ -125,6 +125,72 @@ function generateDischargeData(cycles: number, capacityDecay: number = 0.005): D
   return data;
 }
 
+export function generateDischargeWithPlateaus(cycles: number = 2): DischargeDataPoint[] {
+  const data: DischargeDataPoint[] = [];
+  const current = 0.1;
+  const voltageHigh = 4.2;
+  const voltagePlateau = 3.7;
+  const voltageLow = 3.0;
+  const baseCapacity = 150;
+  let t = 0;
+  
+  for (let cycle = 1; cycle <= cycles; cycle++) {
+    const capacityFactor = 1 - (cycle - 1) * 0.005;
+    const dischargeCapacity = baseCapacity * capacityFactor;
+    const chargeCapacity = dischargeCapacity / 0.98;
+    
+    const chargeTime = chargeCapacity * 3.6 / current;
+    const dischargeTime = dischargeCapacity * 3.6 / current;
+    
+    for (let i = 0; i <= 20; i++) {
+      const soc = i / 20;
+      const V = voltageLow + (4.1 - voltageLow) * (1 - Math.exp(-soc * 5));
+      data.push({ t, V, I: current, cycle, type: 'charge' });
+      t += (chargeTime * 0.3) / 20;
+    }
+    
+    for (let i = 0; i <= 30; i++) {
+      const soc = 0.3 + i / 30 * 0.7;
+      const V = 4.1 + (voltageHigh - 4.1) * (1 - Math.exp(-(soc - 0.3) * 4));
+      data.push({ t, V, I: current, cycle, type: 'charge' });
+      t += (chargeTime * 0.7) / 30;
+    }
+    
+    for (let i = 0; i <= 20; i++) {
+      data.push({ t, V: voltageHigh - 0.02 + Math.random() * 0.002, I: 0, cycle, type: 'rest' });
+      t += 600 / 20;
+    }
+    
+    for (let i = 0; i <= 15; i++) {
+      const dod = i / 15;
+      const V = voltageHigh - (voltageHigh - voltagePlateau) * (1 - Math.exp(-dod * 4));
+      data.push({ t, V, I: -current, cycle, type: 'discharge' });
+      t += (dischargeTime * 0.15) / 15;
+    }
+    
+    for (let i = 0; i <= 60; i++) {
+      const dod = 0.15 + i / 60 * 0.75;
+      const V = voltagePlateau + Math.sin(i * 0.1) * 0.003 - 0.0001 * i;
+      data.push({ t, V, I: -current, cycle, type: 'discharge' });
+      t += (dischargeTime * 0.75) / 60;
+    }
+    
+    for (let i = 0; i <= 15; i++) {
+      const dod = 0.9 + i / 15 * 0.1;
+      const V = voltagePlateau - 0.05 - (voltagePlateau - 0.05 - voltageLow) * (1 - Math.exp(-(dod - 0.9) * 4));
+      data.push({ t, V, I: -current, cycle, type: 'discharge' });
+      t += (dischargeTime * 0.1) / 15;
+    }
+    
+    for (let i = 0; i <= 15; i++) {
+      data.push({ t, V: voltageLow + 0.08 + Math.random() * 0.002, I: 0, cycle, type: 'rest' });
+      t += 300 / 15;
+    }
+  }
+  
+  return data;
+}
+
 export const sampleCVData = {
   'CV_50mV_slow': generateCVData(0.05, 3),
   'CV_100mV_fast': generateCVData(0.1, 3),
@@ -133,6 +199,10 @@ export const sampleCVData = {
   'CV_high_conc': generateCVData(0.05, 3, 0.1),
   'CV_25C': generateCVData(0.05, 3, 0),
   'CV_45C': generateCVData(0.05, 3, 0.05),
+  'CV_25C_low': generateCVData(0.05, 3, -0.1),
+  'CV_25C_high': generateCVData(0.05, 3, 0.05),
+  'CV_45C_low': generateCVData(0.05, 3, -0.05),
+  'CV_45C_high': generateCVData(0.05, 3, 0.1),
 };
 
 export const sampleEISData = {
@@ -154,6 +224,7 @@ export const sampleDischargeData = {
   'Discharge_45C': generateDischargeData(50, 0.008),
   'Discharge_low_conc': generateDischargeData(50, 0.007),
   'Discharge_high_conc': generateDischargeData(50, 0.003),
+  'Discharge_plateau': generateDischargeWithPlateaus(2),
 };
 
 export function cvDataToCSV(data: CVDataPoint[]): string {
