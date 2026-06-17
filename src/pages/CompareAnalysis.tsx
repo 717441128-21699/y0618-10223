@@ -230,6 +230,20 @@ export default function CompareAnalysis() {
     const typeLabel = dataType === 'cv' ? 'CV循环伏安' : dataType === 'eis' ? 'EIS阻抗谱' : '充放电';
     const dateStr = new Date().toLocaleString('zh-CN');
     
+    const canvases = document.querySelectorAll('canvas');
+    const images: { title: string; src: string }[] = [];
+    canvases.forEach((canvas) => {
+      try {
+        const src = canvas.toDataURL('image/png');
+        const wrapper = canvas.closest('.bg-white');
+        const titleEl = wrapper?.querySelector('h3');
+        const title = titleEl?.textContent || '图表';
+        images.push({ title, src });
+      } catch (e) {
+        // skip
+      }
+    });
+    
     let tableRows = '';
     compareTableData.forEach((row: any) => {
       tableRows += `
@@ -262,6 +276,14 @@ export default function CompareAnalysis() {
       param3Label = '平均库仑效率';
     }
     
+    const imagesHtml = images.length > 0
+      ? images.map(img => `
+        <div class="chart-card">
+          <h2 class="chart-title">${img.title}</h2>
+          <img src="${img.src}" alt="${img.title}" class="chart-img" />
+        </div>`).join('')
+      : '<p style="color:#94a3b8;text-align:center;padding:40px;">暂无图表数据</p>';
+    
     const html = `
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -272,7 +294,7 @@ export default function CompareAnalysis() {
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; padding: 40px; }
-    .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }
+    .container { max-width: 960px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }
     .header { background: linear-gradient(135deg, #f97316, #ea580c); color: white; padding: 32px 40px; }
     .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
     .header p { opacity: 0.9; font-size: 14px; }
@@ -284,10 +306,9 @@ export default function CompareAnalysis() {
     th { background: #f1f5f9; font-weight: 600; font-size: 14px; color: #475569; }
     td { font-size: 14px; color: #334155; }
     tr:hover td { background: #f8fafc; }
-    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
-    .summary-card { background: #f1f5f9; border-radius: 8px; padding: 20px; text-align: center; }
-    .summary-card .value { font-size: 28px; font-weight: 700; color: #f97316; margin-bottom: 4px; }
-    .summary-card .label { font-size: 13px; color: #64748b; }
+    .chart-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    .chart-title { font-size: 16px; font-weight: 600; color: #334155; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9; }
+    .chart-img { width: 100%; max-width: 100%; height: auto; display: block; }
     .footer { text-align: center; padding: 20px 40px; background: #f8fafc; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0; }
   </style>
 </head>
@@ -316,6 +337,10 @@ export default function CompareAnalysis() {
             ${tableRows}
           </tbody>
         </table>
+      </div>
+      <div class="section">
+        <h2>📈 关键图表</h2>
+        ${imagesHtml}
       </div>
     </div>
     <div class="footer">

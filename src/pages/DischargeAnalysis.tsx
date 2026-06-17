@@ -284,6 +284,51 @@ export default function DischargeAnalysis() {
     }));
   }, [analysisResult]);
   
+  const segmentTableData = useMemo(() => {
+    if (!analysisResult) return [];
+    
+    const cycles = [...new Set(analysisResult.data.map(d => d.cycle))].sort((a, b) => a - b);
+    
+    return cycles.map(cycleNum => {
+      const cycleData = analysisResult.data.filter(d => d.cycle === cycleNum);
+      const chargePoints = cycleData.filter(d => d.type === 'charge').length;
+      const dischargePoints = cycleData.filter(d => d.type === 'discharge').length;
+      const restPoints = cycleData.filter(d => d.type === 'rest').length;
+      
+      const chargeTime = cycleData
+        .filter(d => d.type === 'charge')
+        .reduce((sum, d, i, arr) => i > 0 ? sum + (d.t - arr[i-1].t) : 0, 0);
+      const dischargeTime = cycleData
+        .filter(d => d.type === 'discharge')
+        .reduce((sum, d, i, arr) => i > 0 ? sum + (d.t - arr[i-1].t) : 0, 0);
+      const restTime = cycleData
+        .filter(d => d.type === 'rest')
+        .reduce((sum, d, i, arr) => i > 0 ? sum + (d.t - arr[i-1].t) : 0, 0);
+      
+      return {
+        cycle: cycleNum,
+        chargePoints,
+        dischargePoints,
+        restPoints,
+        chargeTime: chargeTime.toFixed(0),
+        dischargeTime: dischargeTime.toFixed(0),
+        restTime: restTime.toFixed(0),
+        total: cycleData.length,
+      };
+    });
+  }, [analysisResult]);
+  
+  const segmentColumns = [
+    { key: 'cycle', label: '循环号', width: '70px', align: 'center' as const },
+    { key: 'chargePoints', label: '充电点数', align: 'right' as const },
+    { key: 'dischargePoints', label: '放电点数', align: 'right' as const },
+    { key: 'restPoints', label: '静置点数', align: 'right' as const },
+    { key: 'chargeTime', label: '充电时长(s)', align: 'right' as const },
+    { key: 'dischargeTime', label: '放电时长(s)', align: 'right' as const },
+    { key: 'restTime', label: '静置时长(s)', align: 'right' as const },
+    { key: 'total', label: '总点数', align: 'right' as const },
+  ];
+  
   const cyclesColumns = [
     { key: 'cycle', label: '循环号', width: '80px', align: 'center' as const },
     { key: 'chargeCap', label: '充电容量 (mAh/g)', align: 'right' as const },
@@ -425,6 +470,12 @@ export default function DischargeAnalysis() {
                   columns={cyclesColumns}
                   data={cyclesTableData}
                   title="循环性能参数"
+                />
+                
+                <DataTable
+                  columns={segmentColumns}
+                  data={segmentTableData}
+                  title="分段统计（Type列识别验证）"
                 />
               </>
             ) : (

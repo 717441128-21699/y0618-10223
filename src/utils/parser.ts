@@ -1,21 +1,24 @@
 import type { CVDataPoint, EISDataPoint, DischargeDataPoint, DataType } from '@/types';
 
-export function parseCSV(content: string): Record<string, number>[] {
+export function parseCSV(content: string): Record<string, any>[] {
   const lines = content.trim().split('\n');
   if (lines.length < 2) return [];
   
   const headers = parseLine(lines[0]);
-  const result: Record<string, number>[] = [];
+  const result: Record<string, any>[] = [];
   
   for (let i = 1; i < lines.length; i++) {
     const values = parseLine(lines[i]);
     if (values.length !== headers.length) continue;
     
-    const row: Record<string, number> = {};
+    const row: Record<string, any> = {};
     for (let j = 0; j < headers.length; j++) {
-      const val = parseFloat(values[j]);
-      if (!isNaN(val)) {
-        row[headers[j]] = val;
+      const rawVal = values[j];
+      const numVal = parseFloat(rawVal);
+      if (!isNaN(numVal) && rawVal.trim() !== '') {
+        row[headers[j]] = numVal;
+      } else {
+        row[headers[j]] = rawVal;
       }
     }
     result.push(row);
@@ -68,7 +71,7 @@ export function detectDataType(headers: string[]): DataType | null {
   return null;
 }
 
-export function parseCVData(rows: Record<string, number>[]): CVDataPoint[] {
+export function parseCVData(rows: Record<string, any>[]): CVDataPoint[] {
   const result: CVDataPoint[] = [];
   const keys = Object.keys(rows[0] || {});
   
@@ -90,7 +93,7 @@ export function parseCVData(rows: Record<string, number>[]): CVDataPoint[] {
   return result;
 }
 
-export function parseEISData(rows: Record<string, number>[]): EISDataPoint[] {
+export function parseEISData(rows: Record<string, any>[]): EISDataPoint[] {
   const result: EISDataPoint[] = [];
   const keys = Object.keys(rows[0] || {});
   
@@ -112,7 +115,7 @@ export function parseEISData(rows: Record<string, number>[]): EISDataPoint[] {
   return result;
 }
 
-export function parseDischargeData(rows: Record<string, number>[]): DischargeDataPoint[] {
+export function parseDischargeData(rows: Record<string, any>[]): DischargeDataPoint[] {
   const result: DischargeDataPoint[] = [];
   const keys = Object.keys(rows[0] || {});
   
@@ -151,13 +154,19 @@ export function parseDischargeData(rows: Record<string, number>[]): DischargeDat
     return null;
   };
   
+  const toNum = (val: any): number => {
+    if (typeof val === 'number') return val;
+    const n = parseFloat(String(val));
+    return isNaN(n) ? 0 : n;
+  };
+  
   let prevV = 0;
   let prevT = 0;
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const V = row[vKey] ?? 0;
-    const I = row[iKey] ?? 0;
-    const t = row[tKey] ?? 0;
+    const V = toNum(row[vKey]);
+    const I = toNum(row[iKey]);
+    const t = toNum(row[tKey]);
     
     let type: 'charge' | 'discharge' | 'rest' = 'discharge';
     let typeFromLabel = false;
@@ -203,7 +212,7 @@ export function parseDischargeData(rows: Record<string, number>[]): DischargeDat
       t,
       V,
       I,
-      cycle: cycleKey ? (row[cycleKey] ?? 1) : 1,
+      cycle: cycleKey ? toNum(row[cycleKey]) || 1 : 1,
       type,
     });
     
